@@ -30,6 +30,50 @@ Rotate, scale and shift in plain old unoptimised C
 ## well OK - 32 bit ints on this box
 """
 
+# Don't know how imports work with Cython, but here's one for now.
+import numpy as np
+sin = np.sin
+
+"""
+Definitions, etc. from aff_tr.h
+"""
+# Header providing affine transform functions.
+
+if 'Z_AFFTR_H' not in dir(): # Check what this actually is. DL
+    Z_AFFTR_H = 1
+    
+    # Image data types - to get these from include by caller, so can it
+    #   cast if required types do not match.
+    #define INTYPE float
+    #define OUTTYPE float
+    
+    # define if want sinc() interp option
+    #define HAVESINC
+    
+    # Allowed values for int_param arg
+    NEAREST = 0
+    BILINEAR = 1
+    BICUBIC = 2
+    if 'HAVESINC' in dir():
+        SINC = 3
+    
+    if 'M_PI' not in dir():   # prob the case for c99
+        M_PI = 3.14159265358979323846 # Replace this with numpy.pi? DL
+    
+    # Quoter
+    #define QU(A) xQU(A)
+    #define xQU(A) #A
+    # WTF? DL
+    
+    # Rotate/scale/shift as seen from output image (i.e. like Scipy fn,
+    #   though using kernel convolution).
+    affine_transform_kc(dims, out_arr, in_arr, mat, tr, int_type, int_param, mode, miss_val)
+    # Is this a call to the function or a declaration? If the latter, it can go. DL
+
+
+"""
+Code translated from aff_tr.c
+"""
 # Some decl just to catch type errors
 ## Replace these with assert statements? DL
 #static Kernfun k_bicub;
@@ -42,12 +86,11 @@ Rotate, scale and shift in plain old unoptimised C
 #   if needed (i.e. by sinc(), but does exist.
 ## Replace the following with a try statement? Ignore it for now though, since 
 ## I don't know what it's doing. DL
-#ifndef HAVESINC
-#define PATCHLEN 4  // max size for kernel - 4 should be enough for bicub...
-#else
-#static Kernfun k_sinc;
-#define PATCHLEN 8  //  max size for kernel - sinc is quite big
-#endif
+if 'HAVESINC' not in dir():
+    PATCHLEN = 4 # max size for kernel - 4 should be enough for bicub...
+else:
+    #static Kernfun k_sinc;
+    PATCHLEN = 8 # max size for kernel - sinc is quite big
 
 
 # Basic bicubic as convolution with separable kernel. 
@@ -67,15 +110,15 @@ def k_bicub(x, a):
     else:
         return 0.0
 
-#ifdef HAVESINC
-## A sinc fn which can be used for test but which is slow and takes up
-##   space.  As for others second arg is placeholder.
-#    def k_sinc(x, a)
-#        if abs(x) <= 0.00001:
-#          return 1.0
-#        else:
-#          x = x*M_PI #numpy.pi?
-#        return sin(x)/x
+if 'HAVESINC' in dir():
+# A sinc fn which can be used for test but which is slow and takes up
+#   space.  As for others second arg is placeholder.
+    def k_sinc(x, a):
+        if abs(x) <= 0.00001:
+          return 1.0
+        else:
+          x = x*M_PI #numpy.pi?
+        return sin(x)/x
 
 
 # For a point [row,col] between pixel values in an array img
@@ -86,7 +129,14 @@ def k_bicub(x, a):
 #declared arrays might not in fact be used.
 
 #See affine_transform_kc() for more on args.
-def interpol_kernel(*dims, *img, row, col, k_size, k_fun, intparam, *mode, missing):
+def interpol_kernel(dims, img, row, col, k_size, k_fun, intparam, mode, missing):
+    # Some array declarations that need sorting out. DL
+    # Ignore the above. They can probably just be lists.
+    #int cols[PATCHLEN];
+    #double colw[PATCHLEN];
+    #int rows[PATCHLEN];
+    #double roww[PATCHLEN];
+
     assert(k_size <= PATCHLEN)
     # $$ could prob do N-dim
     # Tabulate the values to process for this point
@@ -124,7 +174,7 @@ def interpol_kernel(*dims, *img, row, col, k_size, k_fun, intparam, *mode, missi
 ## mode ignored for now
 ## not sure what speed implications of function pointers is
 ## likewise, implications of fixed index array refs
-def affine_transform_kc(*dims, *out_arr, *in_arr, *mat, *tr, int_type, int_param, *mode, miss_val):
+def affine_transform_kc(dims, out_arr, in_arr, mat, tr, int_type, int_param, mode, miss_val):
     if int_type == NEAREST:
         i_fun = interpol_nearest
         k_fun = NULL
@@ -140,18 +190,17 @@ def affine_transform_kc(*dims, *out_arr, *in_arr, *mat, *tr, int_type, int_param
         k_fun = k_bicub
         k_size = 4
         break
-    #ifdef HAVESINC
-    #    case SINC:
-    #    i_fun = interpol_kernel
-    #    k_fun = k_sinc
-    #    k_size = 8
-    #    break
+    elif int_type == SINC and 'HAVESINC' in dir():
+        i_fun = interpol_kernel
+        k_fun = k_sinc
+        k_size = 8
+        break
     else:
         return -1
 
     for out1 in range(0, dims[0]):    # rows
-        for out2 in range(0, dims[1])  # cols
-              o1 = float(out1) # Is this necessary? DL
+        for out2 in range(0, dims[1]):  # cols
+              o1 = float(out1) # Is this necessary? I suspect it isn't. DL
               o2 = float(out2)
               in1 = mat[0] * o1 + mat[1]  * o2 + tr[0]
               in2 = -mat[1] * o1 + mat[0]  * o2 + tr[1]
