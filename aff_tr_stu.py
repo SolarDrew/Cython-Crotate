@@ -40,10 +40,10 @@ def interpol_kernel(dims, img, row, col, k_size, k_fun, intparam, missing):
     r0 = int(row) - k_size/2.0 + 1
     for j in range(0, k_size):
         cols[j] = c0 + j  # $$ do we want to save this or recalc...
-        colw[j] = k_fun((double)(c0 + j) - col, intparam) # Not really sure what this is doing. DL
+        colw[j] = k_fun((c0 + j) - col, intparam) # Not really sure what this is doing. DL
     for i in range(0,k_size):
         rows[i] = r0 + i
-        roww[i] = k_fun((double)(r0 + i) - row, intparam) # As above
+        roww[i] = k_fun((r0 + i) - row, intparam) # As above
     # convolve by cols - can be fn $$
     # Each step for separable reduces the dims by one, so NxN->N->scalar
     rsum = 0.0
