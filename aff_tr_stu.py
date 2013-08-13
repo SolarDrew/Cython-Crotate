@@ -26,7 +26,10 @@ def k_bilin(x, *args):
 
 #TODO: refactor this!
 def interpol_kernel(dims, in_arr, row, col, kern_size, kern_func, int_param, missing):
-    cols = colw = rows = roww = [0 for i in range(kern_size)]
+    cols = np.zeros(kern_size)
+    colw = np.zeros(kern_size)
+    rows = np.zeros(kern_size)
+    roww = np.zeros(kern_size)
 
     # $$ could prob do N-dim
     # Tabulate the values to process for this point
