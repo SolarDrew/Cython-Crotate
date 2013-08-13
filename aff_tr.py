@@ -24,22 +24,18 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Rotate, scale and shift in plain old unoptimised C
-## Cython, bitches. DL
-
-## well OK - 32 bit ints on this box
+Rotate, scale and shift images. Intended to be compiled and optimised with Cython.
 """
 
 # Don't know how imports work with Cython, but here's one for now.
-import numpy as np
-sin = np.sin
+from numpy import sin, zeros
 
 """
 Definitions, etc. from aff_tr.h
 """
 # Header providing affine transform functions.
 
-if 'Z_AFFTR_H' not in dir(): # Check what this actually is. DL
+if 'Z_AFFTR_H' not in dir(): # Need to test that this 'x in dir()' method works properly. DL
     Z_AFFTR_H = 1
     
     # Image data types - to get these from include by caller, so can it
@@ -57,18 +53,12 @@ if 'Z_AFFTR_H' not in dir(): # Check what this actually is. DL
     if 'HAVESINC' in dir():
         SINC = 3
     
-    if 'M_PI' not in dir():   # prob the case for c99
-        M_PI = 3.14159265358979323846 # Replace this with numpy.pi? DL
+    M_PI = 3.14159265358979323846 # Replace this with numpy.pi? DL
     
     # Quoter
     #define QU(A) xQU(A)
     #define xQU(A) #A
     # WTF? DL
-    
-    # Rotate/scale/shift as seen from output image (i.e. like Scipy fn,
-    #   though using kernel convolution).
-    affine_transform_kc(dims, out_arr, in_arr, mat, tr, int_type, int_param, mode, miss_val)
-    # Is this a call to the function or a declaration? If the latter, it can go. DL
 
 
 """
@@ -130,12 +120,12 @@ if 'HAVESINC' in dir():
 
 #See affine_transform_kc() for more on args.
 def interpol_kernel(dims, img, row, col, k_size, k_fun, intparam, mode, missing):
-    # Some array declarations that need sorting out. DL
-    # Ignore the above. They can probably just be lists.
-    #int cols[PATCHLEN];
-    #double colw[PATCHLEN];
-    #int rows[PATCHLEN];
-    #double roww[PATCHLEN];
+    # Empty lists to replace arrays of size [PATCHLEN] in C code. May or may 
+    # not need to be numpy arrays. DL
+    cols = []
+    colw = []
+    rows = []
+    roww = []
 
     assert(k_size <= PATCHLEN)
     # $$ could prob do N-dim
@@ -144,10 +134,10 @@ def interpol_kernel(dims, img, row, col, k_size, k_fun, intparam, mode, missing)
     r0 = int(row) - k_size/2.0 + 1
     for j in range(0, k_size):
         cols[j] = c0 + j  # $$ do we want to save this or recalc...
-        colw[j] = k_fun((double)(c0 + j) - col, intparam) # Not really sure what this is doing. DL
+        colw[j] = k_fun(float(c0 + j) - col, intparam) # Not really sure what this is doing. DL
     for i in range(0,k_size):
         rows[i] = r0 + i
-        roww[i] = k_fun((double)(r0 + i) - row, intparam) # As above
+        roww[i] = k_fun(float(r0 + i) - row, intparam) # As above
     # convolve by cols - can be fn $$
     # Each step for separable reduces the dims by one, so NxN->N->scalar
     rsum = 0.0
@@ -174,10 +164,14 @@ def interpol_kernel(dims, img, row, col, k_size, k_fun, intparam, mode, missing)
 ## mode ignored for now
 ## not sure what speed implications of function pointers is
 ## likewise, implications of fixed index array refs
-def affine_transform_kc(dims, out_arr, in_arr, mat, tr, int_type, int_param, mode, miss_val):
+def affine_transform_kc(in_arr, mat, tr, int_type, int_param, mode, miss_val):
+    dims = in_arr.shape # Check that in and out arrays should indeed be the same shape
+    out_arr = zeros(dims)
+    """
+    # Ignore this stuff for now because we're only interested in cubic. DL
     if int_type == NEAREST:
         i_fun = interpol_nearest
-        k_fun = NULL
+        k_fun = NULL # None?
         k_size = 0
         break
     elif int_type == BILINEAR:
@@ -185,7 +179,8 @@ def affine_transform_kc(dims, out_arr, in_arr, mat, tr, int_type, int_param, mod
         k_fun = k_bilin
         k_size = 2
         break
-    elif int_type == BICUBIC:
+    """
+    if int_type == BICUBIC:
         i_fun = interpol_kernel
         k_fun = k_bicub
         k_size = 4
@@ -206,4 +201,4 @@ def affine_transform_kc(dims, out_arr, in_arr, mat, tr, int_type, int_param, mod
               in2 = -mat[1] * o1 + mat[0]  * o2 + tr[1]
               out_arr[out1*dims[1]+out2] = i_fun(dims, in_arr, in1, in2, k_size, k_fun, int_param, mode, miss_val)
     
-    return
+    return out_arr

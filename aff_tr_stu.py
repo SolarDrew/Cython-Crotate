@@ -25,35 +25,29 @@ def k_bilin(x, *args):
     return 0.0
 
 #TODO: refactor this!
-def interpol_kernel(dims, img, row, col, k_size, k_fun, intparam, missing):
-    # Some array declarations that need sorting out. DL
-    # Ignore the above. They can probably just be lists.
-    #int cols[PATCHLEN];
-    #double colw[PATCHLEN];
-    #int rows[PATCHLEN];
-    #double roww[PATCHLEN];
+def interpol_kernel(dims, in_arr, row, col, kern_size, kern_func, int_param, missing):
+    cols = colw = rows = roww = [0 for i in range(kern_size)]
 
-    assert(k_size <= PATCHLEN)
     # $$ could prob do N-dim
     # Tabulate the values to process for this point
-    c0 = int(col) - k_size/2.0 + 1
-    r0 = int(row) - k_size/2.0 + 1
-    for j in range(0, k_size):
+    c0 = int(col) - kern_size/2.0 + 1
+    r0 = int(row) - kern_size/2.0 + 1
+    for j in range(kern_size):
         cols[j] = c0 + j  # $$ do we want to save this or recalc...
-        colw[j] = k_fun((c0 + j) - col, intparam) # Not really sure what this is doing. DL
-    for i in range(0,k_size):
+        colw[j] = kern_func((c0 + j) - col, int_param) # Not really sure what this is doing. DL
+    for i in range(kern_size):
         rows[i] = r0 + i
-        roww[i] = k_fun((r0 + i) - row, intparam) # As above
+        roww[i] = kern_func((r0 + i) - row, int_param) # As above
     # convolve by cols - can be fn $$
     # Each step for separable reduces the dims by one, so NxN->N->scalar
     rsum = 0.0
-    for i in range(0, k_size):
+    for i in range(0, kern_size):
         csum = 0.0
-        for j in range(0, k_size):
+        for j in range(0, kern_size):
             if (rows[i] < 0 or rows[i] >= dims[0] or cols[j] < 0 or cols[j] >= dims[1]):
                 csum = csum + colw[j]*missing
             else:
-                csum = csum + colw[j]*img[rows[i]*dims[1] + cols[j]]
+                csum = csum + colw[j]*in_arr[rows[i]*dims[1] + cols[j]]
         rsum = rsum + roww[i]*csum
     return rsum
 """
@@ -74,7 +68,7 @@ cval
 #offset = tr
 #mode is not used
 #missing = cval
-def affine_transform_kc(in_arr, scale, offset, interpolation_method, int_param, missing):
+def affine_transform_kc(in_arr, scale, offset, int_method, int_param, missing):
     """
     Perform a kernel convolution affine transform
     
@@ -89,7 +83,7 @@ def affine_transform_kc(in_arr, scale, offset, interpolation_method, int_param, 
     offset: [x,y]
         Shift for each axis
     
-    interpolation_method: str
+    int_method: str
         'bicubic' or 'bilinear'
     
     int_param: float
@@ -105,10 +99,19 @@ def affine_transform_kc(in_arr, scale, offset, interpolation_method, int_param, 
     dims = in_arr.shape
     out_arr = np.zeros(in_arr.shape)
     
+    # Choose an interpolation kernel function based on int_method argument.
+    if int_method == 'bicubic':
+        kern_func = k_bicub
+    else:
+        print "Bilinear interpolation is currently unavailable. You're getting bicubic and you'll like it."
+    
+    # I think this defines the extent of the sampled data used for the interpolation. DL
+    kern_size = 4
+    
     #TODO: This needs to be sorted, i.e. modified to work in 2D using numpy??
     #Will this cause issues with the kernel? what is col and row?
-    for out1 in range(0, dims[0]):    # rows
-        for out2 in range(0, dims[1]):  # cols
-              row = scale[0] * out1 + scale[1]  * out2 + offset[0]
-              col = -scale[1] * out1 + scale[0]  * out2 + offset[1]
-              out_arr[out1*dims[1]+out2] = interpol_kernel(dims, in_arr, row, col, k_size, interpolation_method, int_param, missing)
+    for x in range(dims[0]):    # rows
+        for y in range(dims[1]):  # cols
+            row = scale[0] * x + scale[1] * y + offset[0]
+            col = -scale[1] * x + scale[0] * y + offset[1]
+            out_arr[x*dims[1]+y] = interpol_kernel(dims, in_arr, row, col, kern_size, kern_func, int_param, missing)
