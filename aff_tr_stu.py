@@ -33,8 +33,9 @@ def interpol_kernel(dims, in_arr, row, col, kern_size, kern_func, int_param, mis
 
     # $$ could prob do N-dim
     # Tabulate the values to process for this point
-    c0 = int(col) - kern_size/2.0 + 1
-    r0 = int(row) - kern_size/2.0 + 1
+    # Check that astype() rounds in the same way as C's int()
+    c0 = col.astype(int) - kern_size/2.0 + 1
+    r0 = row.astype(int) - kern_size/2.0 + 1
     for j in range(kern_size):
         cols[j] = c0 + j  # $$ do we want to save this or recalc...
         colw[j] = kern_func((c0 + j) - col, int_param) # Not really sure what this is doing. DL
@@ -44,13 +45,14 @@ def interpol_kernel(dims, in_arr, row, col, kern_size, kern_func, int_param, mis
     # convolve by cols - can be fn $$
     # Each step for separable reduces the dims by one, so NxN->N->scalar
     rsum = 0.0
-    for i in range(0, kern_size):
+    for i in range(kern_size):
         csum = 0.0
-        for j in range(0, kern_size):
+        for j in range(kern_size):
             if (rows[i] < 0 or rows[i] >= dims[0] or cols[j] < 0 or cols[j] >= dims[1]):
                 csum = csum + colw[j]*missing
             else:
                 csum = csum + colw[j]*in_arr[rows[i]*dims[1] + cols[j]]
+                #csum = csum + colw[j]*in_arr[rows[i], cols[j]]
         rsum = rsum + roww[i]*csum
     return rsum
 """
@@ -100,6 +102,7 @@ def affine_transform_kc(in_arr, scale, offset, int_method, int_param, missing):
     
     #replicate silly varibles from input
     dims = in_arr.shape
+    in_arr = in_arr.flatten()
     out_arr = np.zeros(in_arr.shape)
     
     # Choose an interpolation kernel function based on int_method argument.
@@ -107,14 +110,21 @@ def affine_transform_kc(in_arr, scale, offset, int_method, int_param, missing):
         kern_func = k_bicub
     else:
         print "Bilinear interpolation is currently unavailable. You're getting bicubic and you'll like it."
+        kern_func = k_bicub
     
     # I think this defines the extent of the sampled data used for the interpolation. DL
     kern_size = 4
     
     #TODO: This needs to be sorted, i.e. modified to work in 2D using numpy??
     #Will this cause issues with the kernel? what is col and row?
+    scale = scale.flatten()    
+    #print scale
     for x in range(dims[0]):    # rows
         for y in range(dims[1]):  # cols
             row = scale[0] * x + scale[1] * y + offset[0]
             col = -scale[1] * x + scale[0] * y + offset[1]
+            #print row, col
             out_arr[x*dims[1]+y] = interpol_kernel(dims, in_arr, row, col, kern_size, kern_func, int_param, missing)
+    out_arr = out_arr.reshape(dims)
+    
+    return out_arr

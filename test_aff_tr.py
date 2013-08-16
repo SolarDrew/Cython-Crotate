@@ -5,15 +5,28 @@ Created on Mon Jul 29 13:33:34 2013
 @author: ajl7
 """
 import numpy as np
+import matplotlib.pyplot as plt
 from aff_tr_stu import affine_transform_kc as aff
 
 in_arr = np.zeros((101,101))
 in_arr[40:60, :] = in_arr[: ,40:60] = 1.0
+plt.imshow(in_arr)
+plt.show()
+
+#Calulate the parameters for the affine_transform
+angle = np.pi / 4.0
+c = np.cos(angle)
+s = np.sin(angle)
+scale = 1.0 # Probably? DL
+centre = (np.array(in_arr.shape)-1)/2.0
+mati = np.array([[c, s],[-s, c]]) / scale   # res->orig
+centre = np.array([centre]).transpose()  # the centre of rotn
+shift = [0, 0]#np.array([shift]).transpose()    # the shift
+kpos = centre - np.dot(mati, (centre + shift))
+rsmat, offs =  mati, np.squeeze((kpos[0,0], kpos[1,0]))
 
 ## should these be const?
-scale = [1.0, 1.0] # Probably? DL
-offset = [0.0, 0.0]
-int_method = 'BICUBIC' # default value
+int_method = 'bicubic' # default value
 int_param = -0.5 # bicubic iterp param
 missing = 0.0 # ????? DL # optional arg
 
@@ -32,4 +45,7 @@ missing = 0.0 # ????? DL # optional arg
 #rotscale = PyArray_DATA(arr2)    # set to the location of the operator matrix
 
 # Call to function that does the actual work.  This one is external. */ 
-out_arr = aff(in_arr, scale, offset, int_method, int_param, missing)
+out_arr = aff(in_arr, rsmat, offs, int_method, int_param, missing)
+
+plt.imshow(out_arr)
+plt.show()
