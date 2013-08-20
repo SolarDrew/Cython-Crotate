@@ -48,11 +48,11 @@ def interpol_kernel(dims, in_arr, row, col, kern_size, kern_func, int_param, mis
     for i in range(kern_size):
         csum = 0.0
         for j in range(kern_size):
-            if (rows[i] < 0 or rows[i] >= dims[0] or cols[j] < 0 or cols[j] >= dims[1]):
+            if (rows[i] < 0 or rows[i] >= dims[0] or cols[j] < 0 or cols[j] >= dims[1]): # This is right!
+            #if (rows[i] < 0 or rows[i] >= dims[0] or cols[j] <= 0 or cols[j] >= dims[1]): # This is wrong!
                 csum = csum + colw[j]*missing
             else:
                 csum = csum + colw[j]*in_arr[rows[i]*dims[1] + cols[j]]
-                #csum = csum + colw[j]*in_arr[rows[i], cols[j]]
         rsum = rsum + roww[i]*csum
     return rsum
 """
