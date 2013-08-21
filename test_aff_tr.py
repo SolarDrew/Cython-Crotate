@@ -57,31 +57,31 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
 
     print "c code"
-    print timeit.timeit("out_arr = Crotate.affine_transform(in_arr, rsmat, offset=offs, kernel=Crotate.BILINEAR, cubic=int_param, mode='constant', cval=missing)",
-                        setup="from __main__ import *", number=10) /10.
+    print timeit.timeit("out_arr = Crotate.affine_transform(in_arr, rsmat, offset=offs, kernel=Crotate.BICUBIC, cubic=int_param, mode='constant', cval=missing)",
+                        setup="from __main__ import *", number=100) /100.
                         
     print "cython wrapper"
-    print timeit.timeit("out_arr = aff_cythonwrap(in_arr, rsmat, offs, int_method, int_param, missing)",
-                        setup="from __main__ import *", number=10) /10.
+    print timeit.timeit("out_arr = aff_cythonwrap(in_arr, rsmat, offs, int_param, missing)",
+                        setup="from __main__ import *", number=100) /100.
     print "cython"
     print timeit.timeit("out_arr = aff(in_arr, rsmat, offs, int_param, missing)",
-                  setup="from __main__ import *", number=10) /10.
+                  setup="from __main__ import *", number=100) /100.
     
-    print "python"
-    print timeit.timeit("out_arr = aff_py(in_arr, rsmat, offs, int_method, int_param, missing)",
-                  setup="from __main__ import *", number=1) /1.
-              
+#    print "python"
+#    print timeit.timeit("out_arr = aff_py(in_arr, rsmat, offs, int_method, int_param, missing)",
+#                  setup="from __main__ import *", number=1) /1.
+#              
 
 
-out_arr_C = Crotate.affine_transform(in_arr, rsmat, offset=offs, kernel=Crotate.BILINEAR, cubic=int_param, mode='constant', cval=missing)   
-out_arr_wr = aff_cythonwrap(in_arr, rsmat, offs, int_method, int_param, missing)
+out_arr_C = Crotate.affine_transform(in_arr, rsmat, offset=offs, kernel=Crotate.BICUBIC, cubic=int_param, mode='constant', cval=missing)   
+out_arr_wr = aff_cythonwrap(in_arr, rsmat, offs, int_param, missing)
 fig, ax = plt.subplots(1,3)
 im1 = ax[0].imshow(out_arr_C - out_arr_wr, cmap=plt.get_cmap('Reds'), interpolation='none')
 plt.colorbar(im1,ax=ax[0])
 im2 = ax[1].imshow(out_arr_C, vmax =1, vmin=0, cmap=plt.get_cmap('Reds'), interpolation='none')
-plt.colorbar(im1,ax=ax[1])
+plt.colorbar(im2,ax=ax[1])
 im3 = ax[2].imshow(out_arr_wr, vmax =1, vmin=0, cmap=plt.get_cmap('Reds'), interpolation='none')
-plt.colorbar(im1,ax=ax[2])
+plt.colorbar(im3,ax=ax[2])
 plt.show()
 #plt.imshow(out_arr)
 #plt.show()
