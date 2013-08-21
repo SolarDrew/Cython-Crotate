@@ -44,8 +44,23 @@ def affine_transform(np.ndarray in_arr, np.ndarray scale, np.ndarray offset,
     
     missing: float
         value to fill missing elements
+    
+    Note
+    ----
+    This function expects a C order contiguious array as input.
     """
+    
+    #Define varibles
+    cdef int dims[2]
+    cdef double row, col
+    cdef int x, y
     cdef int int_type
+    
+    #Create a C array from the shape of the array
+    dims[0] = in_arr.shape[0]
+    dims[1] = in_arr.shape[1]
+    
+    #Process interpolation type    
     if int_method == "nearest":
         int_type = NEAREST
     elif int_method == "bilinear":
@@ -55,20 +70,19 @@ def affine_transform(np.ndarray in_arr, np.ndarray scale, np.ndarray offset,
     else:
         int_type = -1
     
+    #Create array pointers to pass to the C code
     cdef double* scale_v = <double *> scale.data
     cdef double* offset_v = <double *> offset.data
-    
-    cdef int dims[2]
-    cdef int kern_size
-    cdef double row, col
-    cdef int x, y
-    
-    dims[0] = in_arr.shape[0]
-    dims[1] = in_arr.shape[1]
-    
+    #Make a cython memory view of the numpy array from which a pointer can be 
+    #sent to the C function.
     cdef double [:, :] in_arr_v = in_arr
+    #Create a output array the same size as the in_arr by copying it.
     cdef double [:, :] out_arr_v = in_arr_v.copy()
 
+    #Call the C code. The & stands for pointers, pointers for the memoryviews
+    #are extracted by indexing the first element.
+    #The numpy arrays passed in must be contiguious as the array is addressed
+    #in the C code as a 1D flattened C order array.
     affine_transform_kc(dims, &out_arr_v[0,0], &in_arr_v[0,0], scale_v,
                         offset_v, int_type, int_param, missing)
     
