@@ -4,14 +4,9 @@ Created on Wed Aug 21 11:07:50 2013
 
 @author: stuart
 """
-import numpy as np
 
-cimport numpy as np
+from numpy cimport ndarray
 cimport cython
-
-#Define numpy array DTYPES
-DTYPE = np.float64
-ctypedef np.float64_t DTYPE_t
 
 cdef extern from "aff_tr.h":
     int NEAREST
@@ -25,8 +20,8 @@ cdef extern from "aff_tr.c":
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def affine_transform(np.ndarray in_arr, np.ndarray scale, np.ndarray offset,
-                     bytes int_method, double int_param, double missing):
+def affine_transform(ndarray in_arr, ndarray scale, ndarray offset,
+                     double int_param, double missing):
     """
     Perform a kernel convolution affine transform
     
@@ -50,15 +45,17 @@ def affine_transform(np.ndarray in_arr, np.ndarray scale, np.ndarray offset,
     missing: float
         value to fill missing elements
     """
-    cdef int int_type
-    if int_method == "nearest":
-        int_type = NEAREST
-    elif int_method == "bilinear":
-        int_type = BILINEAR
-    elif int_method == "bicubic":
-        int_type = BICUBIC
-    else:
-        int_type = -1
+#    cdef int int_type
+#    if int_method == "nearest":
+#        int_type = NEAREST
+#    elif int_method == "bilinear":
+#        int_type = BILINEAR
+#    elif int_method == "bicubic":
+#        int_type = BICUBIC
+#    else:
+#        int_type = -1
+    
+    int_type = BICUBIC
         
     cdef double [:, :] scale_v = scale
     cdef double [:] offset_v = offset
