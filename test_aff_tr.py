@@ -13,8 +13,8 @@ import sunpy.image.Crotate as Crotate
 
 import timeit
 
-in_arr = np.zeros((101,101))
-in_arr[40:60, :] = in_arr[: ,40:60] = 1.0
+in_arr = np.zeros((1001,1001))
+in_arr[400:600, :] = in_arr[: ,400:600] = 1.0
 #plt.imshow(in_arr)
 #plt.show()
 
