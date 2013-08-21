@@ -28,11 +28,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef Z_AFFTR_H
 #define Z_AFFTR_H 1
 
-/* Image data types - to get these from include by caller, so can it
-   cast if required types do not match. */
-#define INTYPE float
-#define OUTTYPE float
-
 // Allowed values for int_param arg
 #define NEAREST 0
 #define BILINEAR 1
@@ -49,6 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Rotate/scale/shift as seen from output image (i.e. like Scipy fn,
    though using kernel convolution).  */
-int affine_transform_kc(int *dims, OUTTYPE *out_arr, INTYPE *in_arr, double *mat, double *tr, int int_type, double int_param, char *mode, double miss_val);
+int affine_transform_kc(int *dims, double *out_arr, double *in_arr, double *scale, double *offset, int int_type, double int_param, double miss_val);
 
 #endif
