@@ -13,8 +13,10 @@ import sunpy.image.Crotate as Crotate
 
 import timeit
 
-in_arr = np.zeros((501,501))
-in_arr[200:300, :] = in_arr[: ,200:300] = 1.0
+in_arr = np.zeros((4096,4096))
+start = in_arr.shape[0]/2 - in_arr.shape[0]/20
+stop = start + in_arr.shape[0]/20
+in_arr[start:stop, :] = in_arr[: ,start:stop] = 1.0
 #plt.imshow(in_arr)
 #plt.show()
 
@@ -61,7 +63,7 @@ with warnings.catch_warnings():
                         setup="from __main__ import *", number=100) /100.
                         
     print "cython wrapper"
-    print timeit.timeit("out_arr = aff_cythonwrap(in_arr, rsmat, offs, int_param, missing)",
+    print timeit.timeit("out_arr = aff_cythonwrap(in_arr, rsmat, offs, int_method, int_param, missing)",
                         setup="from __main__ import *", number=100) /100.
     print "cython"
     print timeit.timeit("out_arr = aff(in_arr, rsmat, offs, int_param, missing)",
