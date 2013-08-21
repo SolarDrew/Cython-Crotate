@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // A couple of typedefs to avoid horrendous declarations
 typedef double Kernfun(double, double);
-typedef double Intfun(int *, INTYPE *, double, double, int, Kernfun *, double, char *, double);
+typedef double Intfun(int *, double *, double, double, int, Kernfun *, double, double);
 
 // Some decl just to catch type errors
 static Kernfun k_bicub;
@@ -44,7 +44,7 @@ static Intfun interpol_kernel;
 #define PATCHLEN 4  // max size for kernel - 4 should be enough for bicub...
 
 /* Nearest "interp" */
-static double interpol_nearest(int *dims, INTYPE *img, double row, double col, int dummy1, Kernfun dummy2, double dummy3, char *mode, double missing)
+static double interpol_nearest(int *dims, double *img, double row, double col, int dummy1, Kernfun dummy2, double dummy3, double missing)
 {
   int ri, ci;  // must be signed as calc can give negative
 
@@ -99,7 +99,7 @@ declared arrays might not in fact be used.
 See affine_transform_kc() for more on args.
 */
 
-static double interpol_kernel(int *dims, INTYPE *img, double row, double col, int k_size, Kernfun k_fun, double intparam, char *mode, double missing)
+static double interpol_kernel(int *dims, double *img, double row, double col, int k_size, Kernfun k_fun, double intparam, double missing)
 {
   int cols[PATCHLEN];
   double colw[PATCHLEN];
@@ -163,7 +163,7 @@ with int_param only used if need be.
 ## likewise, implications of fixed index array refs
 
 */
-int affine_transform_kc(int *dims, OUTTYPE *out_arr, INTYPE *in_arr, double *scale, double *offset, int int_type, double int_param, double miss_val)
+int affine_transform_kc(int *dims, double *out_arr, double *in_arr, double *scale, double *offset, int int_type, double int_param, double miss_val)
 {
 
   int out1, out2;       // counters   
@@ -201,7 +201,7 @@ int affine_transform_kc(int *dims, OUTTYPE *out_arr, INTYPE *in_arr, double *sca
 
       in1 = scale[0] * o1 + scale[1]  * o2 + offset[0];
       in2 = -scale[1] * o1 + scale[0]  * o2 + offset[1];
-      out_arr[out1*dims[1]+out2] = i_fun(dims, in_arr, in1, in2, k_size, k_fun, int_param, mode, miss_val);
+      out_arr[out1*dims[1]+out2] = i_fun(dims, in_arr, in1, in2, k_size, k_fun, int_param, miss_val);
     }
 
 return 0;

@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from aff_tr_stu import affine_transform_kc as aff_py
 from affine_transform import affine_transform as aff
+from aff_tr.affine_transform import affine_transform as aff_cythonwrap
 import sunpy.image.Crotate as Crotate
 
 import timeit
@@ -50,8 +51,6 @@ missing = 0.0 # ????? DL # optional arg
 
 # Call to function that does the actual work.  This one is external. */ 
 
-in_arr_f = in_arr.ravel()
-rsmat_f = rsmat.ravel()
 import warnings
 
 with warnings.catch_warnings():
@@ -59,6 +58,10 @@ with warnings.catch_warnings():
 
     print "c code"
     print timeit.timeit("out_arr = Crotate.affine_transform(in_arr, rsmat, offset=offs, kernel=Crotate.BILINEAR, cubic=int_param, mode='constant', cval=missing)",
+                        setup="from __main__ import *", number=10) /10.
+                        
+    print "cython wrapper"
+    print timeit.timeit("out_arr = aff_cythonwrap(in_arr, rsmat, offs, int_method, int_param, missing)",
                         setup="from __main__ import *", number=10) /10.
     print "cython"
     print timeit.timeit("out_arr = aff(in_arr, rsmat, offs, int_param, missing)",
@@ -68,7 +71,17 @@ with warnings.catch_warnings():
     print timeit.timeit("out_arr = aff_py(in_arr, rsmat, offs, int_method, int_param, missing)",
                   setup="from __main__ import *", number=1) /1.
               
-              
 
+
+out_arr_C = Crotate.affine_transform(in_arr, rsmat, offset=offs, kernel=Crotate.BILINEAR, cubic=int_param, mode='constant', cval=missing)   
+out_arr_wr = aff_cythonwrap(in_arr, rsmat, offs, int_method, int_param, missing)
+fig, ax = plt.subplots(1,3)
+im1 = ax[0].imshow(out_arr_C - out_arr_wr, cmap=plt.get_cmap('Reds'), interpolation='none')
+plt.colorbar(im1,ax=ax[0])
+im2 = ax[1].imshow(out_arr_C, vmax =1, vmin=0, cmap=plt.get_cmap('Reds'), interpolation='none')
+plt.colorbar(im1,ax=ax[1])
+im3 = ax[2].imshow(out_arr_wr, vmax =1, vmin=0, cmap=plt.get_cmap('Reds'), interpolation='none')
+plt.colorbar(im1,ax=ax[2])
+plt.show()
 #plt.imshow(out_arr)
 #plt.show()
