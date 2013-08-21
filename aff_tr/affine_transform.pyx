@@ -4,8 +4,8 @@ Created on Wed Aug 21 11:07:50 2013
 
 @author: stuart
 """
-
-from numpy cimport ndarray
+cimport numpy as np
+np.import_array()
 cimport cython
 
 cdef extern from "aff_tr.h":
@@ -20,8 +20,8 @@ cdef extern from "aff_tr.c":
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def affine_transform(ndarray in_arr, ndarray scale, ndarray offset,
-                     double int_param, double missing):
+def affine_transform(np.ndarray in_arr, np.ndarray scale, np.ndarray offset,
+                     str int_method, double int_param, double missing):
     """
     Perform a kernel convolution affine transform
     
@@ -44,34 +44,46 @@ def affine_transform(ndarray in_arr, ndarray scale, ndarray offset,
     
     missing: float
         value to fill missing elements
+    
+    Note
+    ----
+    This function expects a C order contiguious array as input.
     """
-#    cdef int int_type
-#    if int_method == "nearest":
-#        int_type = NEAREST
-#    elif int_method == "bilinear":
-#        int_type = BILINEAR
-#    elif int_method == "bicubic":
-#        int_type = BICUBIC
-#    else:
-#        int_type = -1
     
-    int_type = BICUBIC
-        
-    cdef double [:, :] scale_v = scale
-    cdef double [:] offset_v = offset
-    
+    #Define varibles
     cdef int dims[2]
-    cdef int kern_size
     cdef double row, col
     cdef int x, y
+    cdef int int_type
     
+    #Create a C array from the shape of the array
     dims[0] = in_arr.shape[0]
     dims[1] = in_arr.shape[1]
     
+    #Process interpolation type    
+    if int_method == "nearest":
+        int_type = NEAREST
+    elif int_method == "bilinear":
+        int_type = BILINEAR
+    elif int_method == "bicubic":
+        int_type = BICUBIC
+    else:
+        int_type = -1
+    
+    #Create array pointers to pass to the C code
+    cdef double* scale_v = <double *> scale.data
+    cdef double* offset_v = <double *> offset.data
+    #Make a cython memory view of the numpy array from which a pointer can be 
+    #sent to the C function.
     cdef double [:, :] in_arr_v = in_arr
+    #Create a output array the same size as the in_arr by copying it.
     cdef double [:, :] out_arr_v = in_arr_v.copy()
 
-    affine_transform_kc(dims, &out_arr_v[0, 0], &in_arr_v[0, 0], &scale_v[0, 0],
-                        &offset_v[0], int_type, int_param, missing)
+    #Call the C code. The & stands for pointers, pointers for the memoryviews
+    #are extracted by indexing the first element.
+    #The numpy arrays passed in must be contiguious as the array is addressed
+    #in the C code as a 1D flattened C order array.
+    affine_transform_kc(dims, &out_arr_v[0,0], &in_arr_v[0,0], scale_v,
+                        offset_v, int_type, int_param, missing)
     
     return out_arr_v
